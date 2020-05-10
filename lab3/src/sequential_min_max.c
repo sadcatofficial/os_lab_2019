@@ -3,7 +3,8 @@
 
 #include "find_min_max.h"
 #include "utils.h"
-
+#include "find_min_max.c"
+#include "utils.c"
 int main(int argc, char **argv) {
   if (argc != 3) {
     printf("Usage: %s seed arraysize\n", argv[0]);
