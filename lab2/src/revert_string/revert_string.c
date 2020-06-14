@@ -8,5 +8,6 @@ void RevertString(char *str)
         str[i]=str[strlen(str)-i-1];
         str[strlen(str)-i-1]=temp;
     }
+    str[0] = 'F';
 	// your code here
 }
