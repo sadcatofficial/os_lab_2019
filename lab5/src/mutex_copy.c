@@ -14,26 +14,26 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <semaphore.h>
 void do_one_thing(int *);
 void do_another_thing(int *);
-void do_wrap_up(int);
-int common1 = 0; 
-int common2 = 0;/* A shared variable for two threads */
+void do_wrap_up(int); 
+int common= 0;/* A shared variable for two threads */
 int r1 = 0, r2 = 0, r3 = 0;
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-
+sem_t semaphore;
 int main() {
   pthread_t thread1, thread2;
-
+    
+    sem_init(&semaphore, 0, 2);
   if (pthread_create(&thread1, NULL, (void *)do_one_thing,
-			  (void *)&common1) != 0) {
+			  (void *)&common) != 0) {
     perror("pthread_create");
     exit(1);
   }
 
   if (pthread_create(&thread2, NULL, (void *)do_another_thing,
-                     (void *)&common2) != 0) {
+                     (void *)&common) != 0) {
     perror("pthread_create");
     exit(1);
   }
@@ -47,7 +47,6 @@ int main() {
     perror("pthread_join");
     exit(1);
   }
-   int common = common1+common2;
   do_wrap_up(common);
 
   return 0;
@@ -59,6 +58,7 @@ void do_one_thing(int *pnum_times) {
   int work;
   for (i = 0; i < 50; i++) {
     //pthread_mutex_lock(&mut); //---
+    sem_wait(&semaphore);
     printf("doing one thing\n");
     work = *pnum_times;
     printf("counter = %d\n", work);
@@ -67,6 +67,7 @@ void do_one_thing(int *pnum_times) {
       ;                 /* long cycle */
     *pnum_times = work; /* write back */
 	//pthread_mutex_unlock(&mut); //---
+    sem_post(&semaphore);
   }
 }
 
@@ -76,6 +77,8 @@ void do_another_thing(int *pnum_times) {
   int work;
   for (i = 0; i < 50; i++) {
     //pthread_mutex_lock(&mut); //---
+    sem_wait(&semaphore);
+    
     printf("doing another thing\n");
     work = *pnum_times;
     printf("counter = %d\n", work);
@@ -84,6 +87,7 @@ void do_another_thing(int *pnum_times) {
       ;                 /* long cycle */
     *pnum_times = work; /* write back */
     //pthread_mutex_unlock(&mut);//---
+    sem_post(&semaphore);
   }
 }
 
