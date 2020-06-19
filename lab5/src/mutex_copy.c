@@ -58,18 +58,18 @@ void do_one_thing(int *pnum_times) {
   int work;
   for (i = 0; i < 50; i++) {
     //pthread_mutex_lock(&mut); //---
-    sem_wait(&semaphore);
-    printf("doing one thing\n");
-    work = *pnum_times;
-    printf("counter = %d\n", work);
-    work++; /* increment, but not write */
-    for (k = 0; k < 500000; k++)
+     sem_wait(&semaphore);
+     printf("doing one thing\n");
+     work = *pnum_times;
+     printf("counter = %d\n", work);
+     work++; /* increment, but not write */
+        for (k = 0; k < 5000000; k++)
       ;                 /* long cycle */
     
-    *pnum_times = work; /* write back */
+     *pnum_times = work; /* write back */
 
-    sem_post(&semaphore);
-    for (k = 0; k < 500000; k++)
+     sem_post(&semaphore);
+        for (k = 0; k < 5000000; k++)
       ;                 /* long cycle */
     
 	//pthread_mutex_unlock(&mut); //---
@@ -89,12 +89,13 @@ void do_another_thing(int *pnum_times) {
     work = *pnum_times;
     printf("counter = %d\n", work);
     work++; /* increment, but not write */
-    for (k = 0; k < 500000; k++)
+    for (k = 0; k < 5000000; k++)
       ;                 /* long cycle */
-    
      *pnum_times = work; /* write back */
+
      sem_post(&semaphore);
-    for (k = 0; k < 500000; k++)
+     
+     for (k = 0; k < 5000000; k++)
       ;                 /* long cycle */
    
     //pthread_mutex_unlock(&mut);//---
