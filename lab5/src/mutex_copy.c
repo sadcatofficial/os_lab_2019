@@ -25,7 +25,7 @@ sem_t semaphore;
 int main() {
   pthread_t thread1, thread2;
     
-    sem_init(&semaphore, 0, 2);
+    sem_init(&semaphore, 0, 1);
   if (pthread_create(&thread1, NULL, (void *)do_one_thing,
 			  (void *)&common) != 0) {
     perror("pthread_create");
