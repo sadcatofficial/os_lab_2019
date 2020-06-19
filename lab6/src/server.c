@@ -90,19 +90,22 @@ int main(int argc, char **argv) {
   //Сокет имеет тип type, задающий семантику коммуникации.SOCK_STREAM Обеспечивает создание двусторонних надежных и последовательных потоков байтов , поддерживающих соединения. Может также поддерживаться механизм внепоточных данных.
   //Параметр protocol задает конкретный протокол, который работает с сокетом. Обычно существует только один протокол, задающий конкретный тип сокета в определенном семействе протоколов, в этом случае protocol может быть определено, как 0
   //Возвращает файловый дескриптор(>=0), который будет использоваться как ссылка на созданный коммуникационный узел
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+  int server_fd = socket(AF_INET6, SOCK_STREAM, 0);
   if (server_fd < 0) {
     fprintf(stderr, "Can not create server socket!");
     return 1;
   }
+  
+
 
   //Структура sockaddr_in описывает сокет для работы с протоколами IP
-  struct sockaddr_in server;
-  server.sin_family = AF_INET;
+  struct sockaddr_in6 server;
+    memset(&server, 0, sizeof(server));
+  server.sin6_family = AF_INET6;
   //Порт (htons,htonl: данные из узлового порядка расположения байтов в сетевой)
-  server.sin_port = htons((uint16_t)port);
+  server.sin6_port = htons(port);
   //IP-адрес. INADDR_ANY связывает сокет со всеми доступными интерфейсами. 
-  server.sin_addr.s_addr = htonl(INADDR_ANY);
+  server.sin6_addr = in6addr_any;
 
   //Установливаем флаги на сокете  
   int opt_val = 1;

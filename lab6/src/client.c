@@ -52,13 +52,13 @@ void ParallelServer(void *args) {
     }
 
     //Описываем сокет
-    struct sockaddr_in server;
-    server.sin_family = AF_INET;
-    server.sin_port = htons((*thread_args).to_server.port);
-    server.sin_addr.s_addr = *((unsigned long *)hostname->h_addr);
+    struct sockaddr_in6 server;
+    server.sin6_family = AF_INET6;
+    server.sin6_port = htons((*thread_args).to_server.port);
+    server.sin6_addr = *((struct in6_addr*)hostname->h_addr);
 
     //Создаём ссылку на созданный коммуникационный узел, который обеспечивает интеграцию локальных сетей в единое целое
-    int sck = socket(AF_INET, SOCK_STREAM, 0);
+    int sck = socket(AF_INET6, SOCK_STREAM, 0);
     if (sck < 0) {
         fprintf(stderr, "Socket creation failed!\n");
         exit(1);

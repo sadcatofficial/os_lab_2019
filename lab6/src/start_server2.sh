@@ -1,1 +1,1 @@
-LD_LIBRARY_PATH=`pwd` ./server --port 10000 --tnum 2
+LD_LIBRARY_PATH=`pwd` ./server --port 8080 --tnum 1
