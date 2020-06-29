@@ -121,11 +121,11 @@ int main(int argc, char **argv) {
   //Cообщает уровню протокола, что сокет готов к принятию новых входящих соединений
   //Перевод сокета в пассивное (слушающее) состояние и создание очередей сокетов
 
-//   err = listen(server_fd, 128); //128 - макс размер очереди
-//   if (err < 0) {
-//     fprintf(stderr, "Could not listen on socket\n");
-//     return 1;
-//   }
+  err = listen(server_fd, 128); //128 - макс размер очереди
+  if (err < 0) {
+    fprintf(stderr, "Could not listen on socket\n");
+    return 1;
+  }
 
   printf("Server listening at %d\n", port);
 

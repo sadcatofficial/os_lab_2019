@@ -58,7 +58,7 @@ void ParallelServer(void *args) {
     server.sin6_addr = *((struct in6_addr*)hostname->h_addr);
 
     //Создаём ссылку на созданный коммуникационный узел, который обеспечивает интеграцию локальных сетей в единое целое
-    int sck = socket(AF_INET6, SOCK_STREAM, 0);
+    int sck = socket(AF_INET6, SOCK_DGRAM, 0);
     if (sck < 0) {
         fprintf(stderr, "Socket creation failed!\n");
         exit(1);
