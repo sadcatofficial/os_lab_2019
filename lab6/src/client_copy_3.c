@@ -12,10 +12,9 @@
 #include <netinet/ip.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+
 #include "factor.h"
-struct addrinfo *res = NULL;
-    struct addrinfo *ptr = NULL;
-    struct addrinfo hints;
+
 bool ConvertStringToUI64(const char *str, uint64_t *val) {
   char *end = NULL;
   unsigned long long i = strtoull(str, &end, 10);
@@ -45,25 +44,22 @@ int result = 1;
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 void ParallelServer(void *args) {
     struct ArgsForParallelServer *thread_args = (struct ArgsForParallelServer *)args;
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
+
     //Информация и проверка хоста (имя, ip и т.д.)
-    struct addrinfo **hostname;
-    int err  = getaddrinfo((*thread_args).to_server.ip, NULL, &hints, hostname);
-    if (err != 0) {
-        fprintf(stderr, "error %s\n", (*thread_args).to_server.ip);
+    struct hostent *hostname = gethostbyname((*thread_args).to_server.ip);
+    if (hostname == NULL) {
+        fprintf(stderr, "gethostbyname failed with %s\n", (*thread_args).to_server.ip);
         exit(1);
     }
 
     //Описываем сокет
-    struct sockaddr_in6 server;
-    server.sin6_family = AF_INET6;
-    server.sin6_port = htons((*thread_args).to_server.port);
-    server.sin6_addr = *((struct in6_addr*)hostname[0]->ai_addr);
+    struct sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_port = htons((*thread_args).to_server.port);
+    server.sin_addr.s_addr = *((unsigned long *)hostname->h_addr);
 
     //Создаём ссылку на созданный коммуникационный узел, который обеспечивает интеграцию локальных сетей в единое целое
-    int sck = socket(AF_INET6, SOCK_DGRAM, 0);
+    int sck = socket(AF_INET, SOCK_STREAM, 0);
     if (sck < 0) {
         fprintf(stderr, "Socket creation failed!\n");
         exit(1);
@@ -75,7 +71,7 @@ void ParallelServer(void *args) {
         //fprintf(stderr, "error creating connection: %s ", strerror(errno));
         exit(1);
     }
-
+  
     
     //Посылаем даные на сервер
     uint64_t begin = (*thread_args).begin;
@@ -91,7 +87,7 @@ void ParallelServer(void *args) {
       fprintf(stderr, "Send failed\n");
       exit(1);
     }
-    printf("send: ( %lu, %lu ) mod = %lu\n",  begin, end, mod);
+    printf(" send: ( %lu, %lu ) mod = %lu\n",  begin, end, mod);
 
     //Принимаем ответ
     char response[sizeof(uint64_t)];
@@ -102,7 +98,7 @@ void ParallelServer(void *args) {
 
     uint64_t answer = 0;
     memcpy(&answer, response, sizeof(uint64_t));
-    printf("answer: %lu\n", answer);
+    printf("answer: %lu\n",  answer);
     
     //Блокируем
     pthread_mutex_lock(&mut);
@@ -194,7 +190,7 @@ int main(int argc, char **argv) {
   fclose(addresses2);
 
   for (i = 0; i < servers_num; i++) {
-    printf("Client find %s:%d\n", (*(to+i)).ip, (*(to+i)).port);
+    printf("Client connected \n");
   }
 
   sleep(1);

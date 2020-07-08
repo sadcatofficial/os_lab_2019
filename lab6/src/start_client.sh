@@ -1,1 +1,1 @@
-LD_LIBRARY_PATH=`pwd` ./client --k 1000 --mod 5 --servers ./server.txt
+LD_LIBRARY_PATH=`pwd` ./client --k 1000 --mod 5 --servers ./t.txt
