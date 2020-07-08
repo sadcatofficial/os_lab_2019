@@ -14,10 +14,7 @@
 #include <sys/types.h>
 #include "pthread.h"
 #include "factor.h"
-#define SERV_PORT 8080
-#define BUFSIZE 1024
-#define SADDR struct sockaddr
-#define SLEN sizeof(struct sockaddr_in)
+
 int port = -1;
 
 struct FactorialArgs {
@@ -93,40 +90,62 @@ int main(int argc, char **argv) {
   //Сокет имеет тип type, задающий семантику коммуникации.SOCK_STREAM Обеспечивает создание двусторонних надежных и последовательных потоков байтов , поддерживающих соединения. Может также поддерживаться механизм внепоточных данных.
   //Параметр protocol задает конкретный протокол, который работает с сокетом. Обычно существует только один протокол, задающий конкретный тип сокета в определенном семействе протоколов, в этом случае protocol может быть определено, как 0
   //Возвращает файловый дескриптор(>=0), который будет использоваться как ссылка на созданный коммуникационный узел
-  int sockfd, n;
-  char mesg[BUFSIZE], ipadr[16];
-  struct sockaddr_in servaddr;
-  struct sockaddr_in cliaddr;
-
-  if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    perror("socket problem");
-    exit(1);
+  int server_fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+  if (server_fd < 0) {
+    fprintf(stderr, "Can not create server socket!");
+    return 1;
   }
+  
 
-  memset(&servaddr, 0, SLEN);
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port = htons(SERV_PORT);
 
-  if (bind(sockfd, (SADDR *)&servaddr, SLEN) < 0) {
-    perror("bind problem");
-    exit(1);
+  //Структура sockaddr_in описывает сокет для работы с протоколами IP
+  struct sockaddr_in6 server;
+    memset(&server, 0, sizeof(server));
+  server.sin6_family = AF_INET6;
+  //Порт (htons,htonl: данные из узлового порядка расположения байтов в сетевой)
+  server.sin6_port = htons(port);
+  //IP-адрес. INADDR_ANY связывает сокет со всеми доступными интерфейсами. 
+  server.sin6_addr = in6addr_any;
+
+  //Установливаем флаги на сокете  
+  int opt_val = 1;
+  setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
+
+  //Cвязывает локальный сетевой адрес транпортного уровня с сокетом
+  int err = bind(server_fd, (struct sockaddr *)&server, sizeof(server));
+  if (err < 0) {
+    fprintf(stderr, "Can not bind to socket!");
+    return 1;
   }
-  printf("SERVER starts...\n");
-  while (1) {
-    unsigned int len = SLEN;
+  
+  //Cообщает уровню протокола, что сокет готов к принятию новых входящих соединений
+  //Перевод сокета в пассивное (слушающее) состояние и создание очередей сокетов
 
-    if ((n = recvfrom(sockfd, mesg, BUFSIZE, 0, (SADDR *)&cliaddr, &len)) < 0) {
-      perror("recvfrom");
-      exit(1);
+//   err = listen(server_fd, 128); //128 - макс размер очереди
+//   if (err < 0) {
+//     fprintf(stderr, "Could not listen on socket\n");
+//     return 1;
+//   }
+
+  printf("Server listening at %d\n", port);
+
+  //Слушаем в цикле
+  while (true) {
+    struct sockaddr_in client;
+    socklen_t client_len = sizeof(client);
+    //Является блокирующим – он ожидает поступления запроса на соединение
+    int client_fd = accept(server_fd, (struct sockaddr *)&client, &client_len);
+
+    if (client_fd < 0) {
+      fprintf(stderr, "Could not establish new connection\n");
+      continue;
     }
-    mesg[n] = 0;
 
     while (true) {
       unsigned int buffer_size = sizeof(uint64_t) * 3;
       char from_client[buffer_size];
       //Получаем сообщение из сокета клиента в from_client
-      int read = recvfrom(sockfd, mesg, BUFSIZE, 0, (SADDR *)&cliaddr, &len);
+      int read = recv(client_fd, from_client, buffer_size, 0);
 
       if (!read)
         break;
@@ -185,14 +204,17 @@ int main(int argc, char **argv) {
       //Отправляет сообщения в сокет клиента
       char buffer[sizeof(total)];
       memcpy(buffer, &total, sizeof(total));
-      int err = sendto(sockfd, mesg, n, 0, (SADDR *)&cliaddr, len);
+      err = send(client_fd, buffer, sizeof(total), 0);
       if (err < 0) {
         fprintf(stderr, "Can't send data to client\n");
         break;
       }
     }
 
-
+    //Немедленное закрытие всех или части связей на сокет
+    shutdown(client_fd, SHUT_RDWR);
+    //Закрывает (или прерывает) все существующие соединения сокета
+    close(client_fd);
   }
   return 0;
 }

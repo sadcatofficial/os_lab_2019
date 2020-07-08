@@ -13,19 +13,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include "factor.h"
-#include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-#include <arpa/inet.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <getopt.h>
-#define SERV_PORT 8080
-#define BUFSIZE 1024
 bool ConvertStringToUI64(const char *str, uint64_t *val) {
   char *end = NULL;
   unsigned long long i = strtoull(str, &end, 10);
@@ -56,37 +44,19 @@ pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 void ParallelServer(void *args) {
     struct ArgsForParallelServer *thread_args = (struct ArgsForParallelServer *)args;
 
+    //Информация и проверка хоста (имя, ip и т.д.)
+    struct hostent *hostname = gethostbyname((*thread_args).to_server.ip);
+    if (hostname == NULL) {
+        fprintf(stderr, "gethostbyname failed with %s\n", (*thread_args).to_server.ip);
+        exit(1);
+    }
 
-  int sockfd, n;
-  struct sockaddr_in servaddr;
-  struct sockaddr_in cliaddr;
+    //Описываем сокет
+    struct sockaddr_in6 server;
+    server.sin6_family = AF_INET6;
+    server.sin6_port = htons((*thread_args).to_server.port);
+    server.sin6_addr = *((struct in6_addr*)hostname->h_addr);
 
-
-
- 
-  char sendline[BUFSIZE], recvline[BUFSIZE + 1];
-
-  //Описываем адрес сокета
-  memset(&servaddr, 0, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;
-  if (inet_pton(AF_INET, (*thread_args).to_server.ip, &servaddr.sin_addr) < 0) {
-    perror("inet_pton problem");
-    exit(1);
-  }
-  servaddr.sin_port = htons(SERV_PORT);
-
-  //Возвращает файловый дескриптор (>=0), который будет использоваться как ссылка на созданный коммуникационный узел
-  //SOCK_DGRAM – для датаграммных
-  if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    perror("socket problem");
-    exit(1);
-  }
-
-
-
-
-
-    
     //Создаём ссылку на созданный коммуникационный узел, который обеспечивает интеграцию локальных сетей в единое целое
     int sck = socket(AF_INET6, SOCK_DGRAM, 0);
     if (sck < 0) {
@@ -94,7 +64,13 @@ void ParallelServer(void *args) {
         exit(1);
     }
 
-   
+    //Установления логического соединения со стороны клиента. У нас появится неявный bind(), так как на стороне клиента этот вызов делать не обязательно – при вызове connect ядро автоматически сделает необходимое связывание.
+    if (connect(sck, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        fprintf(stderr, "Connection failed\n");
+        //fprintf(stderr, "error creating connection: %s ", strerror(errno));
+        exit(1);
+    }
+    printf("%s:%d connect\n", (*thread_args).to_server.ip, (*thread_args).to_server.port);
     
     //Посылаем даные на сервер
     uint64_t begin = (*thread_args).begin;
